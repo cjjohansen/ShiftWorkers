@@ -1,29 +1,62 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view />
+    <header>
+      <nav>
+        <ul>
+          <li class="nav-item">Schedule</li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <HomePage />
+    </main>
   </div>
 </template>
 
-<style lang="scss">
+<script>
+import HomePage from "./home/HomePage.vue";
+
+export default {
+  name: "app",
+  components: {
+    HomePage
+  }
+};
+</script>
+
+<style>
+body {
+  background: linear-gradient(to bottom, #555, #999);
+  background-attachment: fixed;
+}
 #app {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
 }
-#nav {
+main {
+  margin: 0 auto;
   padding: 30px;
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-    &.router-link-exact-active {
-      color: #42b983;
-    }
-  }
+  background-color: white;
+  width: 1024px;
+  min-height: 300px;
+}
+
+header {
+  background-color: #999;
+  width: 1084px;
+  margin: 0 auto;
+}
+ul {
+  padding: 3px;
+  display: flex;
+}
+.nav-item {
+  display: inline-block;
+  padding: 5px 10px;
+  font-size: 22px;
+  border-right: 1px solid #bbb;
+}
+.logo {
+  vertical-align: middle;
+  height: 30px;
 }
 </style>

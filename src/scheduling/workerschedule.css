@@ -1,0 +1,74 @@
+*
+box-sizing: border-box;
+
+#app
+font-family: $fontFamily
+padding: 20px
+
+.calendar
+display: flex
+flex-direction: column
+
+.header
+display: flex
+justify-content: stretch
+align-items: center
+color: $headerColor
+padding: $headerPadding
+border-width: $headerBorderWidth
+border-style: $headerBorderStyle
+border-color: $headerBorderColor
+background-color: $headerBackground
+
+=pointer()
+  cursor: pointer
+  &:hover
+    color: #dcdcdc
+
+.arrow
+  +pointer
+  padding: 0 0.4em 0.2em 0.4em
+  font-size: 1.8rem
+  font-weight: 500
+  user-select: none
+  flex-grow: 0
+
+.title
+  +pointer
+  flex-grow: 1
+  font-size: 1.2rem
+  text-align: center
+
+.weekdays
+display: flex
+flex: auto
+
+.weekday
+width: $dayWidth
+display: flex
+justify-content: center
+align-items: center
+padding: $weekdayPadding
+color: $weekdayColor
+border-width: $weekdayBorderWidth
+border-style: $weekdayBorderStyle
+border-color: $weekdayBorderColor
+background-color: $weekdayBackground
+
+.week
+display: flex
+
+.day
+width: $dayWidth
+height: $dayHeight
+display: flex
+justify-content: center
+align-items: center
+color: $dayColor
+background-color: $dayBackgroundColor
+border: $dayBorder
+
+.today
+font-weight: 500
+color: $todayColor
+background-color: $todayBackgroundColor
