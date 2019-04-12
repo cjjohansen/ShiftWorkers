@@ -48,9 +48,11 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ### vscode plugins
 
+```
 vslint
 vetur
 vue
+```
 
 ### ESLint rules for windows
 
@@ -58,20 +60,22 @@ vue
 
 ### VSCode settings.js
 
+```
 "vetur.validation.template": false,
 "vetur.completion.useScaffoldSnippets": false,
 "eslint.validate": [{
-"language": "vue",
-"autoFix": true
-},
-{
-"language": "html",
-"autoFix": true
-},
-{
-"language": "javascript",
-"autoFix": true
-}
+        "language": "vue",
+        "autoFix": true
+    },
+    {
+        "language": "html",
+        "autoFix": true
+    },
+    {
+        "language": "javascript",
+        "autoFix": true
+    }
 ],
 "eslint.autoFixOnSave": true,
 "editor.formatOnSave": true,
+```
