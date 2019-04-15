@@ -5,7 +5,7 @@
       <div class="schedule-toolbar">
         <a class="arrow" @click="movePreviousYear">&laquo;</a>
         <a class="arrow" @click="movePreviousMonth">&lsaquo;</a>
-        <span class="title" @click="moveThisMonth">Toolbar</span>
+        <span class="title" @click="moveThisWeek">{{ toolbarTitle }}</span>
         <a class="arrow" @click="moveNextMonth">&rsaquo;</a>
         <a class="arrow" @click="moveNextYear">&raquo;</a>
       </div>
@@ -21,16 +21,22 @@
       <div class="schedule-grid-rows">
         <div
           class="schedule-grid-row"
-          v-for="(row, index) in workers"
+          v-for="(worker, index) in workers"
           :key="index"
         >
           <div
             class="schedule-grid-row-cell"
+            @click="createShift()"
             v-for="(cell, cellIndex) in scheduleColumns"
             :key="cellIndex"
           >
-            <div v-if="cellIndex == 0">{{ row.name }}</div>
-            <div v-else>{{ '+' }}</div>
+            <div v-if="cellIndex == 0">{{ worker.name }}</div>
+            <div v-else-if="workerHasShiftOnDate(worker, shifts, cellIndex)">
+              <div class="cell-add">{{ ' S ' }}</div>
+            </div>
+            <div v-else>
+              <div class="cell-add">{{ ' + ' }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -51,15 +57,22 @@
 import * as scheduleData from '../data/scheduledata';
 import { workers } from '../data/workerdata';
 import { shifts } from '../data/shiftdata';
+//import { format, formatDistance, formatRelative, subDays } from 'date-fns';
+import startOfWeek from 'date-fns/start_of_week';
+import * as datefns from 'date-fns';
 
 export default {
   name: 'WorkerSchedule',
   created() {
-    this.moveThisMonth();
+    this.date = new Date(2019, 3, 9);
+    console.log('this date:', this.date);
+    this.moveThisWeek(this.date);
   },
   data() {
     return {
       scheduleData: scheduleData,
+      date: 0,
+      period: {},
       year: 0,
       month: 0,
       workers,
@@ -67,6 +80,14 @@ export default {
     };
   },
   computed: {
+    toolbarTitle() {
+      return (
+        'Toolbar ' +
+        datefns.format(this.period.from, 'DD MMMM') +
+        ' - ' +
+        datefns.format(this.period.to, 'DD MMMM')
+      );
+    },
     // Our component exposes month as 1-based, but sometimes we need 0-based
     monthIndex() {
       console.log(' inside monthIndex ', this.month);
@@ -121,6 +142,10 @@ export default {
         shortYear: this.year.toString().substring(2, 4),
         label: month.label + ' ' + this.year
       };
+    },
+    firstDayInPeriod() {
+      console.log('date', this.date);
+      return startOfWeek(this.date, { firstDayOfWeek: 'monday' });
     },
     // Returns number for first weekday (1-7), starting from Sunday
     firstWeekdayInMonth() {
@@ -192,7 +217,29 @@ export default {
   },
 
   methods: {
-    moveThisMonth() {
+    workerHasShiftOnDate(worker, shifts, dayInPeriodIndex) {
+      return shifts.some(s => {
+        const firstDate = this.firstDayInPeriod;
+        const currentDate = datefns.addDays(firstDate, dayInPeriodIndex);
+        const result =
+          datefns.compareAsc(new Date(s.date), currentDate) === 0 &&
+          worker.Id == s.workerId;
+        console.log(worker);
+        console.log(s.workerId);
+        console.log(datefns.compareAsc(new Date(s.date), currentDate) === 0);
+        console.log(currentDate);
+        console.log(new Date(s.date));
+        console.log('---------------------------');
+        return result;
+      });
+    },
+    createShift() {
+      console.log('create Shift');
+    },
+    moveThisWeek(date) {
+      this.startDay = startOfWeek(date, { weekStartsOn: 1 });
+      this.period.from = this.firstDayInPeriod;
+      this.period.to = datefns.addDays(this.period.from, 6);
       this.month = scheduleData.todayComps.month;
       this.year = scheduleData.todayComps.year;
     },
@@ -250,6 +297,12 @@ $dayHeight: 50px;
 $todayColor: white;
 $todayBackgroundColor: $themeColor;
 
+$cellBorderWidth: 3px;
+$cellBorderStyle: solid;
+$cellBorderColor: #0000ff;
+
+
+
 $fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
 
 *
@@ -265,6 +318,15 @@ $fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
   cursor: pointer
   &:hover
     color: #dcdcdc
+
+=cell-pointer()
+  cursor: pointer
+  &:hover
+    color: #FF0000
+    border-width: $cellBorderWidth
+    border-style: $cellBorderStyle
+    border-coloer: $cellBorderColor
+
 
 .arrow
   +pointer
@@ -322,6 +384,7 @@ $fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
    flex-direction: row
 
 .schedule-grid-row-cell
+  +cell-pointer
   width: $dayWidth
   height: $dayHeight
   display: flex
@@ -330,6 +393,8 @@ $fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
   color: $dayColor
   background-color: $dayBackgroundColor
   border: $dayBorder
+
+
 
 .schedule-grid-footer
   display: flex
@@ -412,4 +477,11 @@ $fontFamily: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 
   color: $dayColor
   background-color: $dayBackgroundColor
   border: $dayBorder
+
+.cell-add
+  border-width: 1px
+  border-style: $cellBorderStyle
+  border-color: $cellBorderColor
+  border-radius: 30px
+  padding: 0px 5px
 </style>
