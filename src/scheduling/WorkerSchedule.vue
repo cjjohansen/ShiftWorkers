@@ -3,11 +3,11 @@
     <h1>Schedule</h1>
     <div class="schedule">
       <div class="schedule-toolbar">
-        <a class="arrow" @click="movePreviousYear">&laquo;</a>
-        <a class="arrow" @click="movePreviousMonth">&lsaquo;</a>
-        <span class="title" @click="moveThisWeek">{{ toolbarTitle }}</span>
-        <a class="arrow" @click="moveNextMonth">&rsaquo;</a>
-        <a class="arrow" @click="moveNextYear">&raquo;</a>
+        <a class="arrow" @click="movePreviousPeriodFast">&laquo;</a>
+        <a class="arrow" @click="movePreviousPeriod">&lsaquo;</a>
+        <span class="title" @click="moveThisPeriod">{{ toolbarTitle }}</span>
+        <a class="arrow" @click="moveNextPeriod">&rsaquo;</a>
+        <a class="arrow" @click="moveNextPeriodFast">&raquo;</a>
       </div>
       <div class="schedule-grid-header">
         <div
@@ -32,7 +32,9 @@
           >
             <div v-if="cellIndex == 0">{{ worker.name }}</div>
             <div v-else-if="workerHasShiftOnDate(worker, shifts, cellIndex)">
-              <div class="cell-add">{{ ' S ' }}</div>
+              <ShiftTile
+                :shiftData="getShiftForWorkerOnDate(worker, shifts, cellIndex)"
+              />
             </div>
             <div v-else>
               <div class="cell-add">{{ ' + ' }}</div>
@@ -60,14 +62,17 @@ import { shifts } from '../data/shiftdata';
 //import { format, formatDistance, formatRelative, subDays } from 'date-fns';
 import startOfWeek from 'date-fns/start_of_week';
 import * as datefns from 'date-fns';
+import ShiftTile from './ShiftTile.vue';
 
 export default {
   name: 'WorkerSchedule',
+  components: { ShiftTile },
   created() {
     this.date = new Date(2019, 3, 9);
     console.log('this date:', this.date);
-    this.moveThisWeek(this.date);
+    this.moveThisPeriod(this.date);
   },
+
   data() {
     return {
       scheduleData: scheduleData,
@@ -145,7 +150,7 @@ export default {
     },
     firstDayInPeriod() {
       console.log('date', this.date);
-      return startOfWeek(this.date, { firstDayOfWeek: 'monday' });
+      return startOfWeek(this.date, { weekStartsOn: 1 });
     },
     // Returns number for first weekday (1-7), starting from Sunday
     firstWeekdayInMonth() {
@@ -218,7 +223,18 @@ export default {
 
   methods: {
     workerHasShiftOnDate(worker, shifts, dayInPeriodIndex) {
-      return shifts.some(s => {
+      let shift = this.getShiftForWorkerOnDate(
+        worker,
+        shifts,
+        dayInPeriodIndex
+      );
+      console.log('got shift: ', shift);
+      const result = shift != undefined;
+      console.log('worker has shift:', result);
+      return result;
+    },
+    getShiftForWorkerOnDate(worker, shifts, dayInPeriodIndex) {
+      let result = shifts.find(s => {
         const firstDate = this.firstDayInPeriod;
         const currentDate = datefns.addDays(firstDate, dayInPeriodIndex);
         const result =
@@ -230,21 +246,29 @@ export default {
         console.log(currentDate);
         console.log(new Date(s.date));
         console.log('---------------------------');
-        return result;
+        if (result === true) {
+          console.log('¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ returned shift', s);
+          return s;
+        } else {
+          console.log('#################### reached undefined ', result);
+          return undefined;
+        }
       });
+      console.log('result:', result);
+      return result;
     },
     createShift() {
       console.log('create Shift');
     },
-    moveThisWeek(date) {
+    moveThisPeriod(date) {
       this.startDay = startOfWeek(date, { weekStartsOn: 1 });
       this.period.from = this.firstDayInPeriod;
       this.period.to = datefns.addDays(this.period.from, 6);
       this.month = scheduleData.todayComps.month;
       this.year = scheduleData.todayComps.year;
     },
-    moveNextMonth() {
-      console.log('moveNextMonth', this.month);
+    moveNextPeriod() {
+      console.log('moveNextPeriod', this.month);
       console.log('monthIndex ', this.monthIndex);
       if (this.month < 12) {
         this.month++;
@@ -253,7 +277,7 @@ export default {
         this.year++;
       }
     },
-    movePreviousMonth() {
+    movePreviousPeriod() {
       if (this.month > 1) {
         this.month--;
       } else {
@@ -261,10 +285,10 @@ export default {
         this.year--;
       }
     },
-    moveNextYear() {
+    moveNextPeriodFast() {
       this.year++;
     },
-    movePreviousYear() {
+    movePreviousPeriodFast() {
       this.year--;
     }
   }

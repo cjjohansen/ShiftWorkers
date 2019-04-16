@@ -3,13 +3,14 @@ export const daysInMonths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 export const columnLabels = [
   'Worker',
-  'Sunday',
+
   'Monday',
   'Tuesday',
   'Wednesday',
   'Thursday',
   'Friday',
-  'Saturday'
+  'Saturday',
+  'Sunday'
 ];
 export const columnHeaderWordLength = 6;
 export const weekdayCasing = 'title';
