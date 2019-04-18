@@ -31,9 +31,13 @@
             :key="cellIndex"
           >
             <div v-if="cellIndex == 0">{{ worker.name }}</div>
-            <div v-else-if="workerHasShiftOnDate(worker, shifts, cellIndex)">
+            <div
+              v-else-if="workerHasShiftOnDate(worker, shifts, cellIndex - 1)"
+            >
               <ShiftTile
-                :shiftData="getShiftForWorkerOnDate(worker, shifts, cellIndex)"
+                :shiftData="
+                  getShiftForWorkerOnDate(worker, shifts, cellIndex - 1)
+                "
               />
             </div>
             <div v-else>
@@ -45,7 +49,7 @@
       <div class="schedule-grid-footer">
         <div
           class="weekday"
-          v-for="(weekday, weekdayIndex) in weekdays"
+          v-for="(weekday, weekdayIndex) in scheduleColumns"
           :key="weekdayIndex"
         >
           {{ weekday.label }}
@@ -68,46 +72,25 @@ export default {
   name: 'WorkerSchedule',
   components: { ShiftTile },
   created() {
-    this.date = new Date(2019, 3, 9);
-    console.log('this date:', this.date);
-    this.moveThisPeriod(this.date);
+    this.moveThisPeriod(new Date(2019, 3, 9));
   },
-
   data() {
     return {
       scheduleData: scheduleData,
-      date: 0,
-      period: {},
-      year: 0,
-      month: 0,
       workers,
-      shifts
+      shifts,
+      datesInPeriod: []
     };
   },
   computed: {
     toolbarTitle() {
+      console.log('toolbar title', this.datesInPeriod[0]);
       return (
         'Toolbar ' +
-        datefns.format(this.period.from, 'DD MMMM') +
+        datefns.format(this.datesInPeriod[0], 'DD MMMM') +
         ' - ' +
-        datefns.format(this.period.to, 'DD MMMM')
+        datefns.format(this.datesInPeriod[6], 'DD MMMM')
       );
-    },
-    // Our component exposes month as 1-based, but sometimes we need 0-based
-    monthIndex() {
-      console.log(' inside monthIndex ', this.month);
-      return this.month - 1;
-    },
-    // State referenced by header (no dependencies yet...)
-    months() {
-      return scheduleData.monthLabels.map((ml, i) => ({
-        label: scheduleData.transformLabel(
-          ml,
-          scheduleData.monthLength,
-          scheduleData.monthCasing
-        ),
-        number: i + 1
-      }));
     },
     // State for weekday header (no dependencies yet...)
     scheduleColumns() {
@@ -123,173 +106,72 @@ export default {
       });
     },
 
-    weekdays() {
-      return scheduleData.columnLabels.map((wl, i) => {
-        return {
-          label: scheduleData.transformLabel(
-            wl,
-            scheduleData.columnHeaderWordLength,
-            scheduleData.weekdayCasing
-          ),
-          number: i + 1
-        };
-      });
-    },
-    // State for calendar header
     header() {
-      console.log('year: ', this.year);
-
-      console.log('monthIndex ', this.monthIndex);
-      const month = this.months[this.monthIndex];
       return {
-        month,
-        year: this.year.toString(),
-        shortYear: this.year.toString().substring(2, 4),
-        label: month.label + ' ' + this.year
+        label: datefns.format(this.datesInPeriod[0], 'MMMM YYYY')
       };
     },
     firstDayInPeriod() {
-      console.log('date', this.date);
-      return startOfWeek(this.date, { weekStartsOn: 1 });
-    },
-    // Returns number for first weekday (1-7), starting from Sunday
-    firstWeekdayInMonth() {
-      return new Date(this.year, this.monthIndex, 1).getDay() + 1;
-    },
-    // Returns number of days in the current month
-    daysInMonth() {
-      // Check for February in a leap year
-      const isFebruary = this.month === 2;
-      const isLeapYear =
-        (this.year % 4 == 0 && this.year % 100 != 0) || this.year % 400 == 0;
-      if (isFebruary && isLeapYear) return 29;
-      // ...Just a normal month
-      return scheduleData.daysInMonths[this.monthIndex];
-    },
-    weeks() {
-      const weeks = [];
-      let monthStarted = false,
-        monthEnded = false;
-      let monthDay = 0;
-      // Cycle through each week of the month, up to 6 total
-      for (let w = 1; w <= 6 && !monthEnded; w++) {
-        // Cycle through each weekday
-        const week = [];
-        for (let d = 1; d <= 7; d++) {
-          // We need to know when to start counting actual month days
-          if (!monthStarted && d >= this.firstWeekdayInMonth) {
-            // Initialize day counter
-            monthDay = 1;
-            // ...and flag we're tracking actual month days
-            monthStarted = true;
-            // Still in the middle of the month (hasn't ended yet)
-          } else if (monthStarted && !monthEnded) {
-            // Increment the day counter
-            monthDay += 1;
-          }
-          // Append day info for the current week
-          // Note: this might or might not be an actual month day
-          //  We don't know how the UI wants to display various days,
-          //  so we'll supply all the data we can
-          week.push({
-            label: monthDay ? monthDay.toString() : '',
-            number: monthDay,
-            weekdayNumber: d,
-            weekNumber: w,
-            beforeMonth: !monthStarted,
-            afterMonth: monthEnded,
-            inMonth: monthStarted && !monthEnded,
-            isToday:
-              monthDay === scheduleData.todayComps.day &&
-              this.month === scheduleData.todayComps.month &&
-              this.year === scheduleData.todayComps.year,
-            isFirstDay: monthDay === 1,
-            isLastDay: monthDay === this.daysInMonth
-          });
-
-          // Trigger end of month on the last day
-          if (monthStarted && !monthEnded && monthDay >= this.daysInMonth) {
-            monthDay = 0;
-            monthEnded = true;
-          }
-        }
-        // Append week info for the month
-        weeks.push(week);
-      }
-      return weeks;
+      return this.datesInPeriod[0];
     }
-    // End of computed properties
   },
-
   methods: {
-    workerHasShiftOnDate(worker, shifts, dayInPeriodIndex) {
-      let shift = this.getShiftForWorkerOnDate(
-        worker,
-        shifts,
-        dayInPeriodIndex
-      );
-      console.log('got shift: ', shift);
+    workerHasShiftOnDate(worker, shifts, dateIndex) {
+      let shift = this.getShiftForWorkerOnDate(worker, shifts, dateIndex);
+      //      console.log('got shift: ', shift);
       const result = shift != undefined;
-      console.log('worker has shift:', result);
+      //      console.log('worker has shift:', result);
       return result;
     },
-    getShiftForWorkerOnDate(worker, shifts, dayInPeriodIndex) {
+    getShiftForWorkerOnDate(worker, shifts, dateIndex) {
+      const date = this.datesInPeriod[dateIndex];
       let result = shifts.find(s => {
-        const firstDate = this.firstDayInPeriod;
-        const currentDate = datefns.addDays(firstDate, dayInPeriodIndex);
         const result =
-          datefns.compareAsc(new Date(s.date), currentDate) === 0 &&
+          datefns.compareAsc(new Date(s.date), date) === 0 &&
           worker.Id == s.workerId;
-        console.log(worker);
-        console.log(s.workerId);
-        console.log(datefns.compareAsc(new Date(s.date), currentDate) === 0);
-        console.log(currentDate);
-        console.log(new Date(s.date));
-        console.log('---------------------------');
+
+        // console.log(s.workerId);
+        // console.log(datefns.compareAsc(new Date(s.date), date) === 0);
+        // console.log(date);
+        // console.log(new Date(s.date));
+        // console.log('---------------------------');
         if (result === true) {
-          console.log('¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ returned shift', s);
+          //      console.log('¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ returned shift', s);
           return s;
         } else {
-          console.log('#################### reached undefined ', result);
+          //    console.log('#################### reached undefined ', result);
           return undefined;
         }
       });
-      console.log('result:', result);
+      // console.log('result:', result);
       return result;
     },
     createShift() {
       console.log('create Shift');
     },
     moveThisPeriod(date) {
-      this.startDay = startOfWeek(date, { weekStartsOn: 1 });
-      this.period.from = this.firstDayInPeriod;
-      this.period.to = datefns.addDays(this.period.from, 6);
-      this.month = scheduleData.todayComps.month;
-      this.year = scheduleData.todayComps.year;
+      console.log('date:', date);
+      const firstDate = startOfWeek(date, { weekStartsOn: 1 });
+      this.datesInPeriod = [];
+      for (var i = 0; i <= 6; i++) {
+        this.datesInPeriod[i] = datefns.addDays(firstDate, i);
+      }
     },
     moveNextPeriod() {
-      console.log('moveNextPeriod', this.month);
-      console.log('monthIndex ', this.monthIndex);
-      if (this.month < 12) {
-        this.month++;
-      } else {
-        this.month = 1;
-        this.year++;
-      }
+      const newStartDate = datefns.addDays(this.datesInPeriod[0], 7);
+      this.moveThisPeriod(newStartDate);
     },
     movePreviousPeriod() {
-      if (this.month > 1) {
-        this.month--;
-      } else {
-        this.month = 12;
-        this.year--;
-      }
+      const newStartDate = datefns.addDays(this.datesInPeriod[0], -7);
+      this.moveThisPeriod(newStartDate);
     },
     moveNextPeriodFast() {
-      this.year++;
+      const newStartDate = datefns.addDays(this.datesInPeriod[0], 14);
+      this.moveThisPeriod(newStartDate);
     },
     movePreviousPeriodFast() {
-      this.year--;
+      const newStartDate = datefns.addDays(this.datesInPeriod[0], -14);
+      this.moveThisPeriod(newStartDate);
     }
   }
 };
